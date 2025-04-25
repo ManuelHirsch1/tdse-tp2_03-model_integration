@@ -59,12 +59,14 @@
 #define DEL_SYS_XX_MIN				0ul
 #define DEL_SYS_XX_MED				50ul
 #define DEL_SYS_XX_MAX				500ul
+#define DEL_SYS_PRINT               1000ul
+#define DEL_SYS_WAIT                20000ul
 
 /********************** internal data declaration ****************************/
 task_system_dta_t task_system_dta =
-	{DEL_SYS_XX_MIN, ST_SYS_XX_IDLE, EV_SYS_XX_IDLE, false};
+	{DEL_SYS_XX_MIN, ST_SYS_WAITING, EV_SYS_LOOP_DETECTOR_ON, false};
 
-#define SYSTEM_DTA_QTY	(sizeof(task_system_dta)/sizeof(task_system_dta_t))
+#define SYSTEM_DTA_QTY	(sizeof(task_system_dta)	/sizeof(task_system_dta_t))
 
 /********************** internal functions declaration ***********************/
 
@@ -154,27 +156,107 @@ void task_system_update(void *parameters)
 
 		switch (p_task_system_dta->state)
 		{
-			case ST_SYS_XX_IDLE:
+			case ST_SYS_WAITING:
 
-				if ((true == p_task_system_dta->flag) && (EV_SYS_XX_ACTIVE == p_task_system_dta->event))
+				if ((true == p_task_system_dta->flag) && (EV_SYS_LOOP_DETECTOR_ON == p_task_system_dta->event))
 				{
 					p_task_system_dta->flag = false;
 					put_event_task_actuator(EV_LED_XX_ON, ID_LED_A);
-					p_task_system_dta->state = ST_SYS_XX_ACTIVE;
+					p_task_system_dta->state = ST_SYS_CAR_PRESENT;
 				}
 
 				break;
 
-			case ST_SYS_XX_ACTIVE:
+			case ST_SYS_CAR_PRESENT:
 
-				if ((true == p_task_system_dta->flag) && (EV_SYS_XX_IDLE == p_task_system_dta->event))
+				if ((true == p_task_system_dta->flag) && (EV_SYS_LOOP_DETECTOR_OFF == p_task_system_dta->event))
 				{
 					p_task_system_dta->flag = false;
 					put_event_task_actuator(EV_LED_XX_OFF, ID_LED_A);
-					p_task_system_dta->state = ST_SYS_XX_IDLE;
+					p_task_system_dta->state = ST_SYS_WAITING;
+				}
+				else if ((true == p_task_system_dta->flag) && (EV_SYS_ENTRY_REQUEST == p_task_system_dta->event))
+				{
+					p_task_system_dta->flag = false;
+					put_event_task_actuator(EV_LED_XX_OFF, ID_LED_A);
+					p_task_system_dta->state = ST_SYS_PRINTING;
+					p_task_system_dta->tick = DEL_SYS_PRINT;
 				}
 
 				break;
+
+			case ST_SYS_PRINTING:
+
+				if (p_task_system_dta->tick > 0)
+				{
+					p_task_system_dta->tick--;
+				}
+
+				else
+				{
+					p_task_system_dta->flag = false;
+					put_event_task_actuator(EV_LED_XX_OFF, ID_LED_A);
+					p_task_system_dta->state = ST_SYS_BARRIER_RISING;
+				}
+
+				break;
+
+			case ST_SYS_BARRIER_RISING:
+
+				if ((true == p_task_system_dta->flag) && (EV_SYS_BARRIER_UP == p_task_system_dta->event))
+				{
+					p_task_system_dta->flag = false;
+					put_event_task_actuator(EV_LED_XX_OFF, ID_LED_A);
+					p_task_system_dta->state = ST_SYS_BARRIER_UP;
+					p_task_system_dta->tick = DEL_SYS_WAIT;
+				}
+
+				break;
+
+			case ST_SYS_BARRIER_UP:
+
+				if ((true == p_task_system_dta->flag) && (EV_SYS_INFRARED_ON == p_task_system_dta->event))
+				{
+					p_task_system_dta->flag = false;
+					put_event_task_actuator(EV_LED_XX_OFF, ID_LED_A);
+					p_task_system_dta->state = ST_SYS_CAR_PASSING;
+				}
+
+			    else if (p_task_system_dta->tick > 0)
+				{
+					p_task_system_dta->tick--;
+				}
+
+				else
+				{
+					p_task_system_dta->flag = false;
+					put_event_task_actuator(EV_LED_XX_OFF, ID_LED_A);
+					p_task_system_dta->state = ST_SYS_BARRIER_FALLING;
+				}
+
+				break;
+
+			case ST_SYS_CAR_PASSING:
+
+				if ((true == p_task_system_dta->flag) && (EV_SYS_INFRARED_OFF == p_task_system_dta->event))
+				{
+					p_task_system_dta->flag = false;
+					put_event_task_actuator(EV_LED_XX_OFF, ID_LED_A);
+					p_task_system_dta->state = ST_SYS_BARRIER_FALLING;
+				}
+
+				break;
+
+			case ST_SYS_BARRIER_FALLING:
+
+				if ((true == p_task_system_dta->flag) && (EV_SYS_BARRIER_DOWN == p_task_system_dta->event))
+				{
+					p_task_system_dta->flag = false;
+					put_event_task_actuator(EV_LED_XX_OFF, ID_LED_A);
+					p_task_system_dta->state = ST_SYS_WAITING;
+				}
+
+
 
 			default:
 

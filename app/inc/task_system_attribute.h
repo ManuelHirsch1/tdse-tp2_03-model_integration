@@ -63,11 +63,17 @@ extern "C" {
 
 /* Events to excite Task System */
 typedef enum task_system_ev {EV_SYS_XX_IDLE,
-							 EV_SYS_XX_ACTIVE} task_system_ev_t;
+	                         EV_SYS_LOOP_DETECTOR_ON,
+							 EV_SYS_LOOP_DETECTOR_OFF,
+							 EV_SYS_ENTRY_REQUEST,
+							 EV_SYS_BARRIER_UP,
+                             EV_SYS_INFRARED_ON,
+							 EV_SYS_INFRARED_OFF,
+							 EV_SYS_BARRIER_DOWN} task_system_ev_t;
 
 /* State of Task System */
-typedef enum task_system_st {ST_SYS_XX_IDLE,
-							 ST_SYS_XX_ACTIVE} task_system_st_t;
+typedef enum task_system_st {ST_SYS_WAITING,
+							 ST_SYS_CAR_PRESENT, ST_SYS_PRINTING, ST_SYS_BARRIER_RISING, ST_SYS_BARRIER_UP, ST_SYS_CAR_PASSING, ST_SYS_BARRIER_FALLING} task_system_st_t;
 
 typedef struct
 {
